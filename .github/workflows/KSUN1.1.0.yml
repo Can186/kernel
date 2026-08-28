@@ -1,4 +1,4 @@
-name: Build KernelSU Next 1.1.1
+name: Build KernelSU Next 1.1.0
 on: workflow_dispatch
 jobs:
   build:
@@ -64,7 +64,7 @@ jobs:
           test -f drivers/misc/mediatek/connectivity/wmt_drv/Makefile
       - name: 集成 KernelSU Next 1.1.0
         run: |
-          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s v1.1.1
+          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s v1.1.0
       - name: 修复 seccomp 兼容性
         run: |
           sed -i '/atomic_set(&current->seccomp.filter_count, 0);/d' drivers/kernelsu/core_hook.c
