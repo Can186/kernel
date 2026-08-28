@@ -1,5 +1,5 @@
-name: Build KernelSU Next 3.0.0 Kernel
-on: workflow_dispatch
+name: Build KernelSU Next 3.0.0
+on: [push, workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -18,7 +18,7 @@ jobs:
           wget -q -O arm32.tar.gz https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9/+archive/refs/tags/android-12.1.0_r27.tar.gz
           mkdir -p /opt/gcc-arm32 && tar -xf arm32.tar.gz -C /opt/gcc-arm32
 
-      - name: 修复源码
+      - name: 修复源码（基础修复）
         run: |
           sed -i 's/(unsigned int)\*cmdq_handle/(unsigned long)*cmdq_handle/g' drivers/gpu/drm/mediatek/mtk_drm_crtc.c
           echo "void scp_wdt_reset(int cpu_id);" >> drivers/misc/mediatek/scp/mt6873/scp_helper.h
@@ -30,16 +30,7 @@ jobs:
           touch drivers/input/touchscreen/focaltech_touch/include/firmware/fw_sample.i
           touch drivers/input/touchscreen/focaltech_touch/include/pramboot/FT8719_Pramboot_V0.5_20171221.i
           grep -q "stpcpy" lib/string.c || printf '\n#ifndef __HAVE_ARCH_STPCPY\nchar *stpcpy(char *dest, const char *src)\n{\n\twhile ((*dest = *src) != '"'\\0'"') {\n\t\tdest++;\n\t\tsrc++;\n\t}\n\treturn dest;\n}\nEXPORT_SYMBOL(stpcpy);\n#endif\n' >> lib/string.c
-          sed -i '/#if defined(CONFIG_KSU_SUSFS/,/#endif/d' fs/proc/task_mmu.c
-          sed -i '/#ifdef CONFIG_KSU_SUSFS_SUS_MAP/,/#endif/d' fs/proc/task_mmu.c
 
-      - name: 集成 KernelSU next 1.0.8
-        run: |
-          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s v3.0.0
-      - name: 修复 KernelSU Next 3.0.0 兼容性
-        run: |
-          sed -i '1i #include <linux/sched/task.h>' drivers/kernelsu/allowlist.c
-          sed -i 's/TWA_RESUME/true/g' drivers/kernelsu/allowlist.c
       - name: 拉取 MTK 驱动并配置 WLAN
         run: |
           mkdir -p vendor/mediatek
@@ -69,9 +60,18 @@ jobs:
           test -f drivers/misc/mediatek/connectivity/wlan_drv_gen4m/Makefile
           test -f drivers/misc/mediatek/connectivity/wmt_chrdev_wifi/Makefile
           test -f drivers/misc/mediatek/connectivity/wmt_drv/Makefile
-      - name: 修复 seccomp 兼容性
+
+      - name: 集成 KernelSU Next 3.0.0
         run: |
+          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s v3.0.0
+
+      - name: 修复 KernelSU Next 兼容性
+        run: |
+          printf '#ifndef _LINUX_PGTABLE_H\n#define _LINUX_PGTABLE_H\n#include <asm/pgtable.h>\n#include <linux/mm.h>\n#endif\n' > include/linux/pgtable.h
           sed -i '/atomic_set(&current->seccomp.filter_count, 0);/d' drivers/kernelsu/app_profile.c
+          sed -i 's/TWA_RESUME/true/g' drivers/kernelsu/allowlist.c
+          sed -i '1i #include <linux/sched/task.h>' drivers/kernelsu/allowlist.c
+
       - name: 配置和编译
         run: |
           export PATH="/opt/clang12/bin:/opt/gcc-arm64/bin:/opt/gcc-arm32/bin:$PATH"
@@ -87,10 +87,6 @@ jobs:
           ../scripts/config -e CONFIG_MTK_COMBO_BT
           ../scripts/config -e CONFIG_KALLSYMS
           ../scripts/config -e CONFIG_KALLSYMS_ALL
-          ../scripts/config -e CONFIG_KPROBES
-          ../scripts/config -e CONFIG_HAVE_KPROBES
-          ../scripts/config -e CONFIG_KPROBE_EVENTS
-          ../scripts/config -e CONFIG_MODULES
           ../scripts/config -e CONFIG_KSU
           cd ..
           yes "" | make ARCH=arm64 olddefconfig O=out
@@ -99,7 +95,7 @@ jobs:
       - name: 上传内核
         uses: actions/upload-artifact@v4
         with:
-          name: KernelSU_Image
+          name: KernelSU_Next_3.0.0
           path: |
             out/arch/arm64/boot/Image
             out/arch/arm64/boot/dts/mediatek/mt6873.dtb
