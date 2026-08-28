@@ -36,7 +36,35 @@ jobs:
       - name: 集成 KernelSU 0.9.5
         run: |
           curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -s v0.9.5
+      - name: 拉取 MTK 驱动并配置 WLAN
+        run: |
+          mkdir -p vendor/mediatek
+          git clone --depth=1 --branch cezanne-r-oss https://github.com/MiCode/MTK_kernel_modules.git vendor/mediatek/kernel_modules
+          sed -i 's|TOP := $(srctree)/\.\.|TOP := $(srctree)/|' vendor/mediatek/kernel_modules/connectivity/wlan/core/gen4m/Makefile
+          sed -i 's|TOP := $(srctree)/\.\.|TOP := $(srctree)/|' vendor/mediatek/kernel_modules/connectivity/wlan/adaptor/Makefile
 
+      - name: 修改 connectivity Makefile 并创建软链接
+        run: |
+          CONN_MK="drivers/misc/mediatek/connectivity/Makefile"
+          cp "$CONN_MK" "${CONN_MK}.bak"
+          sed -i 's/\bunlink\b/rm -rf/g' "$CONN_MK"
+          sed -i 's/\bln -s\b/ln -snf/g' "$CONN_MK"
+          sed -i 's|\$(srctree)/\.\./|\$(srctree)/|g' "$CONN_MK"
+          sed -i -E 's|^([[:space:]]*PATH_TO_WMT_DRV[[:space:]]*=).*|\1 vendor/mediatek/kernel_modules/connectivity/common|' "$CONN_MK"
+          sed -i -E 's|^([[:space:]]*PATH_TO_WLAN_CHR_DRV[[:space:]]*=).*|\1 vendor/mediatek/kernel_modules/connectivity/wlan/adaptor|' "$CONN_MK"
+          sed -i -E 's|^([[:space:]]*PATH_TO_WLAN_DRV[[:space:]]*=).*|\1 vendor/mediatek/kernel_modules/connectivity/wlan/core/gen4m|' "$CONN_MK"
+          sed -i -E 's|^([[:space:]]*ABS_PATH_TO_WMT_DRV[[:space:]]*=).*|\1 $(abspath $(srctree)/$(PATH_TO_WMT_DRV))|' "$CONN_MK"
+          sed -i -E 's|^([[:space:]]*ABS_PATH_TO_WLAN_CHR_DRV[[:space:]]*=).*|\1 $(abspath $(srctree)/$(PATH_TO_WLAN_CHR_DRV))|' "$CONN_MK"
+          sed -i -E 's|^([[:space:]]*ABS_PATH_TO_WLAN_DRV[[:space:]]*=).*|\1 $(abspath $(srctree)/$(PATH_TO_WLAN_DRV))|' "$CONN_MK"
+          rm -rf drivers/misc/mediatek/connectivity/wlan_drv_gen4m
+          rm -rf drivers/misc/mediatek/connectivity/wmt_chrdev_wifi
+          rm -rf drivers/misc/mediatek/connectivity/wmt_drv
+          ln -snf "$(pwd)/vendor/mediatek/kernel_modules/connectivity/wlan/core/gen4m" drivers/misc/mediatek/connectivity/wlan_drv_gen4m
+          ln -snf "$(pwd)/vendor/mediatek/kernel_modules/connectivity/wlan/adaptor" drivers/misc/mediatek/connectivity/wmt_chrdev_wifi
+          ln -snf "$(pwd)/vendor/mediatek/kernel_modules/connectivity/common" drivers/misc/mediatek/connectivity/wmt_drv
+          test -f drivers/misc/mediatek/connectivity/wlan_drv_gen4m/Makefile
+          test -f drivers/misc/mediatek/connectivity/wmt_chrdev_wifi/Makefile
+          test -f drivers/misc/mediatek/connectivity/wmt_drv/Makefile
       - name: 配置和编译
         run: |
           export PATH="/opt/clang12/bin:/opt/gcc-arm64/bin:/opt/gcc-arm32/bin:$PATH"
@@ -62,7 +90,7 @@ jobs:
           ../scripts/config -e CONFIG_KSU
           cd ..
           yes "" | make ARCH=arm64 olddefconfig O=out
-          yes "" | make -j$(nproc) ARCH=arm64 SUBARCH=arm64 CC=clang LD=ld.lld O=out
+          yes "" | make -j$(nproc) ARCH=arm64 SUBARCH=arm64 CC=clang LD=ld.lld O=out CONFIG_WLAN_DRV_BUILD_IN=y
 
       - name: 上传内核
         uses: actions/upload-artifact@v4
