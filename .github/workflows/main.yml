@@ -63,11 +63,14 @@ jobs:
 
       - name: 集成 KernelSU Next 1.0.8 和 SUSFS
         run: |
-          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s v1.0.8           curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/susfs_inline_hook_patches.sh" | bash
-          curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/Patch/susfs_patch_to_4.14.patch" | patch -p1 || true
+          wget -q https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh -O /tmp/ksu_setup.sh
+          bash /tmp/ksu_setup.sh v1.0.8
+          curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/susfs_inline_hook_patches.sh" | bash
+          curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/Patch/susfs_patch_to_4.14.patch" -o /tmp/susfs.patch
+          patch -p1 < /tmp/susfs.patch || true
           sed -i '/static void smap_gather_stats/,/^}/{s/return 0;/return;/}' fs/proc/task_mmu.c
           sed -i '/#include "internal.h"/a #include <linux/susfs_def.h>' fs/proc/task_mmu.c
-
+          
       - name: 配置和编译
         run: |
           export PATH="/opt/clang12/bin:/opt/gcc-arm64/bin:/opt/gcc-arm32/bin:$PATH"
