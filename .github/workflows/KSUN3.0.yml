@@ -1,4 +1,4 @@
-name: Build KernelSU Next 1.0.8 Kernel
+name: Build KernelSU Next 3.0.0 Kernel
 on: workflow_dispatch
 jobs:
   build:
