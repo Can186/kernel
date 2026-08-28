@@ -36,6 +36,10 @@ jobs:
       - name: 集成 KernelSU next 1.0.8
         run: |
           curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s v3.0.0
+      - name: 修复 KernelSU Next 3.0.0 兼容性
+        run: |
+          sed -i '1i #include <linux/sched/task.h>' drivers/kernelsu/allowlist.c
+          sed -i 's/TWA_RESUME/true/g' drivers/kernelsu/allowlist.c
       - name: 拉取 MTK 驱动并配置 WLAN
         run: |
           mkdir -p vendor/mediatek
