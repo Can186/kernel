@@ -69,6 +69,9 @@ jobs:
           test -f drivers/misc/mediatek/connectivity/wlan_drv_gen4m/Makefile
           test -f drivers/misc/mediatek/connectivity/wmt_chrdev_wifi/Makefile
           test -f drivers/misc/mediatek/connectivity/wmt_drv/Makefile
+      - name: 修复 seccomp 兼容性
+        run: |
+          sed -i '/atomic_set(&current->seccomp.filter_count, 0);/d' drivers/kernelsu/app_profile.c
       - name: 配置和编译
         run: |
           export PATH="/opt/clang12/bin:/opt/gcc-arm64/bin:/opt/gcc-arm32/bin:$PATH"
