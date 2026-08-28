@@ -1,5 +1,5 @@
-name: Build KernelSU Next 1.0.8 Kernel
-on: workflow_dispatch
+name: Build KernelSU Next 1.0.8 + SUSFS
+on: [push, workflow_dispatch]
 jobs:
   build:
     runs-on: ubuntu-22.04
@@ -18,7 +18,7 @@ jobs:
           wget -q -O arm32.tar.gz https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9/+archive/refs/tags/android-12.1.0_r27.tar.gz
           mkdir -p /opt/gcc-arm32 && tar -xf arm32.tar.gz -C /opt/gcc-arm32
 
-      - name: 修复源码
+      - name: 修复源码（基础修复）
         run: |
           sed -i 's/(unsigned int)\*cmdq_handle/(unsigned long)*cmdq_handle/g' drivers/gpu/drm/mediatek/mtk_drm_crtc.c
           echo "void scp_wdt_reset(int cpu_id);" >> drivers/misc/mediatek/scp/mt6873/scp_helper.h
@@ -30,12 +30,7 @@ jobs:
           touch drivers/input/touchscreen/focaltech_touch/include/firmware/fw_sample.i
           touch drivers/input/touchscreen/focaltech_touch/include/pramboot/FT8719_Pramboot_V0.5_20171221.i
           grep -q "stpcpy" lib/string.c || printf '\n#ifndef __HAVE_ARCH_STPCPY\nchar *stpcpy(char *dest, const char *src)\n{\n\twhile ((*dest = *src) != '"'\\0'"') {\n\t\tdest++;\n\t\tsrc++;\n\t}\n\treturn dest;\n}\nEXPORT_SYMBOL(stpcpy);\n#endif\n' >> lib/string.c
-          sed -i '/#if defined(CONFIG_KSU_SUSFS/,/#endif/d' fs/proc/task_mmu.c
-          sed -i '/#ifdef CONFIG_KSU_SUSFS_SUS_MAP/,/#endif/d' fs/proc/task_mmu.c
 
-      - name: 集成 KernelSU next 1.0.8
-        run: |
-          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s v1.0.8
       - name: 拉取 MTK 驱动并配置 WLAN
         run: |
           mkdir -p vendor/mediatek
@@ -65,7 +60,15 @@ jobs:
           test -f drivers/misc/mediatek/connectivity/wlan_drv_gen4m/Makefile
           test -f drivers/misc/mediatek/connectivity/wmt_chrdev_wifi/Makefile
           test -f drivers/misc/mediatek/connectivity/wmt_drv/Makefile
-      - name: 配置和编译
+
+      - name: 集成 KernelSU Next 1.0.8 和 SUSFS
+        run: |
+          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s v1.0.8           curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/susfs_inline_hook_patches.sh" | bash
+          curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/Patch/susfs_patch_to_4.14.patch" | patch -p1 || true
+          sed -i '/static void smap_gather_stats/,/^}/{s/return 0;/return;/}' fs/proc/task_mmu.c
+          sed -i '/#include "internal.h"/a #include <linux/susfs_def.h>' fs/proc/task_mmu.c
+
+          - name: 配置和编译
         run: |
           export PATH="/opt/clang12/bin:/opt/gcc-arm64/bin:/opt/gcc-arm32/bin:$PATH"
           export ARCH=arm64
@@ -78,24 +81,28 @@ jobs:
           ../scripts/config --disable LTO_CLANG
           ../scripts/config -e CONFIG_WLAN_DRV_BUILD_IN
           ../scripts/config -e CONFIG_MTK_COMBO_BT
-          ../scripts/config -e CONFIG_IPC
-          ../scripts/config -e CONFIG_IPC_NS
-          ../scripts/config -e CONFIG_NAMESPACES
           ../scripts/config -e CONFIG_KALLSYMS
           ../scripts/config -e CONFIG_KALLSYMS_ALL
-          ../scripts/config -e CONFIG_KPROBES
-          ../scripts/config -e CONFIG_HAVE_KPROBES
-          ../scripts/config -e CONFIG_KPROBE_EVENTS
-          ../scripts/config -e CONFIG_MODULES
           ../scripts/config -e CONFIG_KSU
+          ../scripts/config -e CONFIG_KSU_SUSFS
+          ../scripts/config -e CONFIG_KSU_SUSFS_SUS_PATH
+          ../scripts/config -e CONFIG_KSU_SUSFS_SUS_MOUNT
+          ../scripts/config -e CONFIG_KSU_SUSFS_SUS_KSTAT
+          ../scripts/config -e CONFIG_KSU_SUSFS_SPOOF_UNAME
+          ../scripts/config -e CONFIG_KSU_SUSFS_ENABLE_LOG
+          ../scripts/config -e CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS
+          ../scripts/config -e CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
+          ../scripts/config -e CONFIG_KSU_SUSFS_OPEN_REDIRECT
+          ../scripts/config -e CONFIG_KSU_SUSFS_SUS_MAP
           cd ..
           yes "" | make ARCH=arm64 olddefconfig O=out
           yes "" | make -j$(nproc) ARCH=arm64 SUBARCH=arm64 CC=clang LD=ld.lld O=out CONFIG_WLAN_DRV_BUILD_IN=y
 
+
       - name: 上传内核
         uses: actions/upload-artifact@v4
         with:
-          name: KernelSU_Image
+          name: KernelSU_Next_1.0.8_SUSFS
           path: |
             out/arch/arm64/boot/Image
             out/arch/arm64/boot/dts/mediatek/mt6873.dtb
