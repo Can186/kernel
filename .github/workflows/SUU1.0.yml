@@ -83,22 +83,7 @@ jobs:
             printf '\nvoid ksu_selinux_hide_handle_post_fs_data(void) { }\nvoid ksu_selinux_hide_handle_second_stage(void) { }\n' >> drivers/kernelsu/ksu.c
           fi
 
-      - name: 修复 KPM access_ok 兼容性
-        run: |
-          sed -i 's/access_ok(/access_ok(VERIFY_READ, /g' drivers/kernelsu/kpm/kpm.c
-
-      - name: 清理之前的错误修复
-        run: |
-          sed -i '/extern void ksu_selinux_hide_handle_post_fs_data/d' drivers/kernelsu/ksu.c
-          sed -i '/extern void ksu_selinux_hide_handle_second_stage/d' drivers/kernelsu/ksu.c
-          sed -i '/void ksu_selinux_hide_handle_post_fs_data(void) { }/d' drivers/kernelsu/ksu.c
-          sed -i '/void ksu_selinux_hide_handle_second_stage(void) { }/d' drivers/kernelsu/ksu.c
-
-      - name: 修复 SukiSU Ultra 缺失函数和类型
-        run: |
-          sed -i 's/ksu_selinux_hide_handle_post_fs_data();/\/\/ ksu_selinux_hide_handle_post_fs_data();/' drivers/kernelsu/runtime/ksud.c
-          sed -i 's/ksu_selinux_hide_handle_second_stage();/\/\/ ksu_selinux_hide_handle_second_stage();/' drivers/kernelsu/runtime/ksud.c
-          sed -i 's/bool ksu_is_init_rc_hook_enabled = false;/int ksu_is_init_rc_hook_enabled = 0;/' drivers/kernelsu/ksu.c
+      
 
           
       - name: 配置和编译
