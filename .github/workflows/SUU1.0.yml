@@ -72,25 +72,17 @@ jobs:
           sed -i '/static void smap_gather_stats/,/^}/{s/return 0;/return;/}' fs/proc/task_mmu.c
           sed -i '/#include "internal.h"/a #include <linux/susfs_def.h>' fs/proc/task_mmu.c
 
-      - name: 修复 SukiSU Ultra 编译和链接兼容性
+      - name: 修复 SukiSU Ultra 对齐和链接
         run: |
-          # 修复 fallthrough
+          rm -rf out
           sed -i 's/fallthrough;/__attribute__((fallthrough));/g' drivers/kernelsu/policy/allowlist.c
-
-          # 修复 strncpy_from_user_nofault：确保只保留两个下划线
           sed -i '145s/____strncpy_from_user_nofault/__strncpy_from_user_nofault/' drivers/kernelsu/sulog/event.c
-          sed -i '145s/strncpy_from_user_nofault/__strncpy_from_user_nofault/' drivers/kernelsu/sulog/event.c
-
-          # 添加 extern 声明
           sed -i '1i extern void ksu_selinux_hide_handle_post_fs_data(void);\nextern void ksu_selinux_hide_handle_second_stage(void);' drivers/kernelsu/ksu.c
-
-          # 修改类型避免对齐错误
-          sed -i 's/bool ksu_su_compat_enabled/int ksu_su_compat_enabled/g' drivers/kernelsu/ksu.c
-          sed -i 's/bool ksu_is_init_rc_hook_enabled = false;/int ksu_is_init_rc_hook_enabled = 0;/' drivers/kernelsu/ksu.c
-
-          # 追加空实现解决 undefined reference
+          grep -rl "bool ksu_su_compat_enabled" drivers/kernelsu/ | xargs sed -i 's/bool ksu_su_compat_enabled/int ksu_su_compat_enabled/g'
+          grep -rl "bool ksu_is_init_rc_hook_enabled" drivers/kernelsu/ | xargs sed -i 's/bool ksu_is_init_rc_hook_enabled/int ksu_is_init_rc_hook_enabled/g'
           printf '\nvoid ksu_selinux_hide_handle_post_fs_data(void) { }\nvoid ksu_selinux_hide_handle_second_stage(void) { }\n' >> drivers/kernelsu/ksu.c
 
+          
       - name: 配置和编译
         run: |
           export PATH="/opt/clang12/bin:/opt/gcc-arm64/bin:/opt/gcc-arm32/bin:$PATH"
