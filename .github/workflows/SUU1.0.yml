@@ -77,6 +77,12 @@ jobs:
           sed -i '145s/strncpy_from_user_nofault/__strncpy_from_user_nofault/' drivers/kernelsu/sulog/event.c
           sed -i '1i extern void ksu_selinux_hide_handle_post_fs_data(void);\nextern void ksu_selinux_hide_handle_second_stage(void);' drivers/kernelsu/ksu.c
 
+      - name: 修复 SukiSU SELinux 函数缺失
+        run: |
+          if ! grep -q "ksu_selinux_hide_handle_post_fs_data(void) {" drivers/kernelsu/ksu.c; then
+            printf '\nvoid ksu_selinux_hide_handle_post_fs_data(void) { }\nvoid ksu_selinux_hide_handle_second_stage(void) { }\n' >> drivers/kernelsu/ksu.c
+          fi
+
       - name: 配置和编译
         run: |
           export PATH="/opt/clang12/bin:/opt/gcc-arm64/bin:/opt/gcc-arm32/bin:$PATH"
@@ -106,6 +112,7 @@ jobs:
           ../scripts/config -e CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
           ../scripts/config -e CONFIG_KSU_SUSFS_OPEN_REDIRECT
           ../scripts/config -e CONFIG_KSU_SUSFS_SUS_MAP
+          ../scripts/config -e CONFIG_KPM
           cd ..
           yes "" | make ARCH=arm64 olddefconfig O=out
           yes "" | make -j$(nproc) ARCH=arm64 SUBARCH=arm64 CC=clang LD=ld.lld O=out CONFIG_WLAN_DRV_BUILD_IN=y
