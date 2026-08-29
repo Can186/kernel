@@ -78,10 +78,9 @@ jobs:
           sed -i 's/fallthrough;/__attribute__((fallthrough));/g' drivers/kernelsu/policy/allowlist.c
           sed -i '145s/____strncpy_from_user_nofault/__strncpy_from_user_nofault/' drivers/kernelsu/sulog/event.c
           sed -i '1i extern void ksu_selinux_hide_handle_post_fs_data(void);\nextern void ksu_selinux_hide_handle_second_stage(void);' drivers/kernelsu/ksu.c
-          grep -rl "bool ksu_su_compat_enabled" drivers/kernelsu/ | xargs sed -i 's/bool ksu_su_compat_enabled/int ksu_su_compat_enabled/g'
-          grep -rl "bool ksu_is_init_rc_hook_enabled" drivers/kernelsu/ | xargs sed -i 's/bool ksu_is_init_rc_hook_enabled/int ksu_is_init_rc_hook_enabled/g'
+          grep -rl "bool ksu_su_compat_enabled" drivers/kernelsu/ | xargs -r sed -i 's/bool ksu_su_compat_enabled/int ksu_su_compat_enabled/g'
+          grep -rl "bool ksu_is_init_rc_hook_enabled" drivers/kernelsu/ | xargs -r sed -i 's/bool ksu_is_init_rc_hook_enabled/int ksu_is_init_rc_hook_enabled/g'
           printf '\nvoid ksu_selinux_hide_handle_post_fs_data(void) { }\nvoid ksu_selinux_hide_handle_second_stage(void) { }\n' >> drivers/kernelsu/ksu.c
-
           
       - name: 配置和编译
         run: |
