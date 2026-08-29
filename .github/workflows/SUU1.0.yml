@@ -1,4 +1,4 @@
-name: Build KernelSU Next 3.0.0
+name: Build SUU Kernel
 on: workflow_dispatch
 jobs:
   build:
@@ -61,16 +61,17 @@ jobs:
           test -f drivers/misc/mediatek/connectivity/wmt_chrdev_wifi/Makefile
           test -f drivers/misc/mediatek/connectivity/wmt_drv/Makefile
 
-      - name: 集成 KernelSU Next 3.0.0
+      - name: 集成 SukiSU Ultra + SUSFS (Inline Hook)
         run: |
-          curl -LSs "https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh" | bash -s v3.0.0
+          rm -f drivers/kernelsu/selinux/selinux.c
+          curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash -s builtin
+          curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/susfs_inline_hook_patches.sh" | bash
+          curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/Patch/susfs_patch_to_4.14.patch" -o /tmp/susfs.patch
+          patch -p1 < /tmp/susfs.patch || true
+          sed -i '/static void smap_gather_stats/,/^}/{s/return 0;/return;/}' fs/proc/task_mmu.c
+          sed -i '/#include "internal.h"/a #include <linux/susfs_def.h>' fs/proc/task_mmu.c
 
-      - name: 修复 KernelSU Next 兼容性
-        run: |
-          printf '#ifndef _LINUX_PGTABLE_H\n#define _LINUX_PGTABLE_H\n#include <asm/pgtable.h>\n#include <linux/mm.h>\n#endif\n' > include/linux/pgtable.h
-          sed -i '/atomic_set(&current->seccomp.filter_count, 0);/d' drivers/kernelsu/app_profile.c
-          sed -i 's/TWA_RESUME/true/g' drivers/kernelsu/allowlist.c
-          sed -i '1i #include <linux/sched/task.h>' drivers/kernelsu/allowlist.c
+      
 
       - name: 配置和编译
         run: |
@@ -88,6 +89,19 @@ jobs:
           ../scripts/config -e CONFIG_KALLSYMS
           ../scripts/config -e CONFIG_KALLSYMS_ALL
           ../scripts/config -e CONFIG_KSU
+          ../scripts/config -e CONFIG_KSU
+          ../scripts/config -e CONFIG_KALLSYMS
+          ../scripts/config -e CONFIG_KALLSYMS_ALL
+          ../scripts/config -e CONFIG_KSU_SUSFS
+          ../scripts/config -e CONFIG_KSU_SUSFS_SUS_PATH
+          ../scripts/config -e CONFIG_KSU_SUSFS_SUS_MOUNT
+          ../scripts/config -e CONFIG_KSU_SUSFS_SUS_KSTAT
+          ../scripts/config -e CONFIG_KSU_SUSFS_SPOOF_UNAME
+          ../scripts/config -e CONFIG_KSU_SUSFS_ENABLE_LOG
+          ../scripts/config -e CONFIG_KSU_SUSFS_HIDE_KSU_SUSFS_SYMBOLS
+          ../scripts/config -e CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
+          ../scripts/config -e CONFIG_KSU_SUSFS_OPEN_REDIRECT
+          ../scripts/config -e CONFIG_KSU_SUSFS_SUS_MAP
           cd ..
           yes "" | make ARCH=arm64 olddefconfig O=out
           yes "" | make -j$(nproc) ARCH=arm64 SUBARCH=arm64 CC=clang LD=ld.lld O=out CONFIG_WLAN_DRV_BUILD_IN=y
