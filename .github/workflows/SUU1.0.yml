@@ -78,7 +78,14 @@ jobs:
           sed -i 's/fallthrough;/__attribute__((fallthrough));/g' drivers/kernelsu/policy/allowlist.c
           sed -i '145s/strncpy_from_user_nofault/__strncpy_from_user_nofault/' drivers/kernelsu/sulog/event.c
           sed -i '1i extern void ksu_selinux_hide_handle_post_fs_data(void);\nextern void ksu_selinux_hide_handle_second_stage(void);' drivers/kernelsu/ksu.c
-          
+
+      - name: 修复 SukiSU Ultra 链接和兼容性
+        run: |
+          sed -i 's/bool ksu_su_compat_enabled/int ksu_su_compat_enabled/g' drivers/kernelsu/ksu.c
+          sed -i 's/bool ksu_is_init_rc_hook_enabled = false;/int ksu_is_init_rc_hook_enabled = 0;/' drivers/kernelsu/ksu.c
+          printf '\nvoid ksu_selinux_hide_handle_post_fs_data(void) { }\nvoid ksu_selinux_hide_handle_second_stage(void) { }\n' >> drivers/kernelsu/ksu.c
+          sed -i 's/fallthrough;/__attribute__((fallthrough));/g' drivers/kernelsu/policy/allowlist.c
+          sed -i '145s/strncpy_from_user_nofault/__strncpy_from_user_nofault/' drivers/kernelsu/sulog/event.c
       - name: 配置和编译
         run: |
           export PATH="/opt/clang12/bin:/opt/gcc-arm64/bin:/opt/gcc-arm32/bin:$PATH"
