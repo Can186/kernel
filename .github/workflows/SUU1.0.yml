@@ -69,28 +69,28 @@ jobs:
           curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/susfs_inline_hook_patches.sh" | bash
           curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/Patch/susfs_patch_to_4.14.patch" -o /tmp/susfs.patch
           patch -p1 < /tmp/susfs.patch || true
-          
           sed -i '/static void smap_gather_stats/,/^}/{s/return 0;/return;/}' fs/proc/task_mmu.c
           sed -i '/#include "internal.h"/a #include <linux/susfs_def.h>' fs/proc/task_mmu.c
 
-      - name: 修复 strncpy_from_user_nofault 重复替换
+      - name: 修复 SukiSU Ultra 编译和链接兼容性
         run: |
-          sed -i '145s/____strncpy_from_user_nofault/__strncpy_from_user_nofault/' drivers/kernelsu/sulog/event.c
-          
-      - name: 修复 SukiSU Ultra 编译兼容性
-        run: |
+          # 修复 fallthrough
           sed -i 's/fallthrough;/__attribute__((fallthrough));/g' drivers/kernelsu/policy/allowlist.c
+
+          # 修复 strncpy_from_user_nofault：确保只保留两个下划线
+          sed -i '145s/____strncpy_from_user_nofault/__strncpy_from_user_nofault/' drivers/kernelsu/sulog/event.c
           sed -i '145s/strncpy_from_user_nofault/__strncpy_from_user_nofault/' drivers/kernelsu/sulog/event.c
+
+          # 添加 extern 声明
           sed -i '1i extern void ksu_selinux_hide_handle_post_fs_data(void);\nextern void ksu_selinux_hide_handle_second_stage(void);' drivers/kernelsu/ksu.c
 
-      - name: 修复 SukiSU Ultra 链接和兼容性
-        run: |
+          # 修改类型避免对齐错误
           sed -i 's/bool ksu_su_compat_enabled/int ksu_su_compat_enabled/g' drivers/kernelsu/ksu.c
           sed -i 's/bool ksu_is_init_rc_hook_enabled = false;/int ksu_is_init_rc_hook_enabled = 0;/' drivers/kernelsu/ksu.c
+
+          # 追加空实现解决 undefined reference
           printf '\nvoid ksu_selinux_hide_handle_post_fs_data(void) { }\nvoid ksu_selinux_hide_handle_second_stage(void) { }\n' >> drivers/kernelsu/ksu.c
-          sed -i 's/fallthrough;/__attribute__((fallthrough));/g' drivers/kernelsu/policy/allowlist.c
-          sed -i '145s/strncpy_from_user_nofault/__strncpy_from_user_nofault/' drivers/kernelsu/sulog/event.c
-        
+
       - name: 配置和编译
         run: |
           export PATH="/opt/clang12/bin:/opt/gcc-arm64/bin:/opt/gcc-arm32/bin:$PATH"
