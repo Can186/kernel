@@ -83,6 +83,9 @@ jobs:
             printf '\nvoid ksu_selinux_hide_handle_post_fs_data(void) { }\nvoid ksu_selinux_hide_handle_second_stage(void) { }\n' >> drivers/kernelsu/ksu.c
           fi
 
+      - name: 修复 KPM access_ok 兼容性
+        run: |
+          sed -i 's/access_ok(/access_ok(VERIFY_READ, /g' drivers/kernelsu/kpm/kpm.c
       - name: 配置和编译
         run: |
           export PATH="/opt/clang12/bin:/opt/gcc-arm64/bin:/opt/gcc-arm32/bin:$PATH"
