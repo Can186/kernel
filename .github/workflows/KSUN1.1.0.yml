@@ -68,7 +68,10 @@ jobs:
           curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/susfs_inline_hook_patches.sh" | bash
           curl -LSs "https://raw.githubusercontent.com/JackA1ltman/NonGKI_Kernel_Build_2nd/refs/heads/mainline/Patches/Patch/susfs_patch_to_4.14.patch" -o /tmp/susfs.patch
           patch -p1 < /tmp/susfs.patch || true
-          
+
+      - name: 修复 ksu_is_init_rc_hook_enabled 未定义
+        run: |
+          grep -q "ksu_is_init_rc_hook_enabled" drivers/kernelsu/ksu.c || echo "bool ksu_is_init_rc_hook_enabled = false;" >> drivers/kernelsu/ksu.c
       
       - name: 配置和编译
         run: |
