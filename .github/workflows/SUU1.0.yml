@@ -81,6 +81,9 @@ jobs:
           grep -rl "bool ksu_is_init_rc_hook_enabled" drivers/kernelsu/ | xargs -r sed -i 's/bool ksu_is_init_rc_hook_enabled/int ksu_is_init_rc_hook_enabled/g'
           printf '\nvoid ksu_selinux_hide_handle_post_fs_data(void) { }\nvoid ksu_selinux_hide_handle_second_stage(void) { }\n' >> drivers/kernelsu/ksu.c
 
+      - name: 修复 KPM access_ok 兼容性
+        run: |
+          sed -i 's/access_ok(/access_ok(VERIFY_READ, /g' drivers/kernelsu/kpm/kpm.c || true
       
       - name: 配置和编译
         run: |
@@ -110,6 +113,7 @@ jobs:
           ../scripts/config -e CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
           ../scripts/config -e CONFIG_KSU_SUSFS_OPEN_REDIRECT
           ../scripts/config -e CONFIG_KSU_SUSFS_SUS_MAP
+          ../scripts/config -e CONFIG_KPM
           cd ..
           yes "" | make ARCH=arm64 olddefconfig O=out
           yes "" | make -j$(nproc) ARCH=arm64 SUBARCH=arm64 CC=clang LD=aarch64-linux-android-ld O=out CONFIG_WLAN_DRV_BUILD_IN=y
@@ -117,7 +121,7 @@ jobs:
       - name: 上传内核
         uses: actions/upload-artifact@v4
         with:
-          name: SukiSU_Ultra_SUSFS
+          name: SukiSU_Ultra_SUSFS_KPM
           path: |
             out/arch/arm64/boot/Image
             out/arch/arm64/boot/dts/mediatek/mt6873.dtb
