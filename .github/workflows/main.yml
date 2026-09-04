@@ -61,7 +61,9 @@ jobs:
           test -f drivers/misc/mediatek/connectivity/wlan_drv_gen4m/Makefile
           test -f drivers/misc/mediatek/connectivity/wmt_chrdev_wifi/Makefile
           test -f drivers/misc/mediatek/connectivity/wmt_drv/Makefile
-
+          rm -rf drivers/misc/mediatek/connectivity/bt
+          ln -snf "$(pwd)/vendor/mediatek/kernel_modules/connectivity/bt/mt66xx/legacy" drivers/misc/mediatek/connectivity/bt
+          test -f drivers/misc/mediatek/connectivity/bt/Makefile
       - name: 集成 KernelSU Next 1.0.8 和 SUSFS
         run: |
           wget -q https://raw.githubusercontent.com/KernelSU-Next/KernelSU-Next/next/kernel/setup.sh -O /tmp/ksu_setup.sh
