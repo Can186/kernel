@@ -17,7 +17,6 @@ jobs:
           mkdir -p /opt/gcc-arm64 && tar -xf arm64.tar.gz -C /opt/gcc-arm64
           wget -q -O arm32.tar.gz https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9/+archive/refs/tags/android-12.1.0_r27.tar.gz
           mkdir -p /opt/gcc-arm32 && tar -xf arm32.tar.gz -C /opt/gcc-arm32
-
       - name: 修复源码
         run: |
           sed -i 's/(unsigned int)\*cmdq_handle/(unsigned long)*cmdq_handle/g' drivers/gpu/drm/mediatek/mtk_drm_crtc.c
@@ -32,7 +31,6 @@ jobs:
           grep -q "stpcpy" lib/string.c || printf '\n#ifndef __HAVE_ARCH_STPCPY\nchar *stpcpy(char *dest, const char *src)\n{\n\twhile ((*dest = *src) != '"'\\0'"') {\n\t\tdest++;\n\t\tsrc++;\n\t}\n\treturn dest;\n}\nEXPORT_SYMBOL(stpcpy);\n#endif\n' >> lib/string.c
           sed -i '/#if defined(CONFIG_KSU_SUSFS/,/#endif/d' fs/proc/task_mmu.c
           sed -i '/#ifdef CONFIG_KSU_SUSFS_SUS_MAP/,/#endif/d' fs/proc/task_mmu.c
-
       - name: 集成 ReSukiSU 和 SUSFS
         run: |
           curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
@@ -48,9 +46,6 @@ jobs:
           git clone --depth=1 --branch cezanne-r-oss https://github.com/MiCode/MTK_kernel_modules.git vendor/mediatek/kernel_modules
           sed -i 's|TOP := $(srctree)/\.\.|TOP := $(srctree)/|' vendor/mediatek/kernel_modules/connectivity/wlan/core/gen4m/Makefile
           sed -i 's|TOP := $(srctree)/\.\.|TOP := $(srctree)/|' vendor/mediatek/kernel_modules/connectivity/wlan/adaptor/Makefile
-          sed -i 's|TOP := $(srctree)/\.\.|TOP := $(srctree)/|' vendor/mediatek/kernel_modules/connectivity/bt/mt66xx/legacy/Makefile
-          sed -i 's|TOP := $(srctree)/\.\.|TOP := $(srctree)/|' vendor/mediatek/kernel_modules/connectivity/bt/mt66xx/legacy/Makefile
-          sed -i 's/obj-m/obj-y/g' vendor/mediatek/kernel_modules/connectivity/bt/mt66xx/legacy/Makefile
       - name: 修改 connectivity Makefile 并创建软链接
         run: |
           CONN_MK="drivers/misc/mediatek/connectivity/Makefile"
@@ -64,14 +59,6 @@ jobs:
           sed -i -E 's|^([[:space:]]*ABS_PATH_TO_WMT_DRV[[:space:]]*=).*|\1 $(abspath $(srctree)/$(PATH_TO_WMT_DRV))|' "$CONN_MK"
           sed -i -E 's|^([[:space:]]*ABS_PATH_TO_WLAN_CHR_DRV[[:space:]]*=).*|\1 $(abspath $(srctree)/$(PATH_TO_WLAN_CHR_DRV))|' "$CONN_MK"
           sed -i -E 's|^([[:space:]]*ABS_PATH_TO_WLAN_DRV[[:space:]]*=).*|\1 $(abspath $(srctree)/$(PATH_TO_WLAN_DRV))|' "$CONN_MK"
-          sed -i 's|^# For BT built-in mode start @{|For BT built-in mode start @{|' "$CONN_MK"
-          sed -i 's|^#   PATH_TO_BT_DRV            = vendor/mediatek/kernel_modules/connectivity/bt/mt66xx/legacy|  PATH_TO_BT_DRV            = vendor/mediatek/kernel_modules/connectivity/bt/mt66xx/legacy|' "$CONN_MK"
-          sed -i 's|^# endif|endif|' "$CONN_MK"
-          sed -i 's|^# ABS_PATH_TO_BT_DRV          = $(srctree)/../$(PATH_TO_BT_DRV)|ABS_PATH_TO_BT_DRV          = $(abspath $(srctree)/$(PATH_TO_BT_DRV))|' "$CONN_MK"
-          sed -i 's|^# $(shell unlink $(srctree)/$(src)/bt)|$(shell rm -rf $(srctree)/$(src)/bt)|' "$CONN_MK"
-          sed -i 's|^# $(shell ln -s $(ABS_PATH_TO_BT_DRV)        $(srctree)/$(src)/bt)|$(shell ln -snf $(ABS_PATH_TO_BT_DRV)        $(srctree)/$(src)/bt)|' "$CONN_MK"
-          sed -i 's|^# obj-y += bt/|obj-y += bt/|' "$CONN_MK"
-          sed -i 's|^# @} For BT built-in mode end|@} For BT built-in mode end|' "$CONN_MK"
           rm -rf drivers/misc/mediatek/connectivity/wlan_drv_gen4m
           rm -rf drivers/misc/mediatek/connectivity/wmt_chrdev_wifi
           rm -rf drivers/misc/mediatek/connectivity/wmt_drv
@@ -81,9 +68,6 @@ jobs:
           test -f drivers/misc/mediatek/connectivity/wlan_drv_gen4m/Makefile
           test -f drivers/misc/mediatek/connectivity/wmt_chrdev_wifi/Makefile
           test -f drivers/misc/mediatek/connectivity/wmt_drv/Makefile
-          rm -rf drivers/misc/mediatek/connectivity/bt
-          ln -snf "$(pwd)/vendor/mediatek/kernel_modules/connectivity/bt/mt66xx/legacy" drivers/misc/mediatek/connectivity/bt
-          test -f drivers/misc/mediatek/connectivity/bt/Makefile
       - name: 配置和编译
         run: |
           export PATH="/opt/clang12/bin:/opt/gcc-arm64/bin:/opt/gcc-arm32/bin:$PATH"
@@ -95,13 +79,13 @@ jobs:
           cd out
           ../scripts/config --disable CONFIG_CC_STACKPROTECTOR_STRONG
           ../scripts/config --disable LTO_CLANG
+          ../scripts/config -e CONFIG_WLAN_DRV_BUILD_IN
           ../scripts/config -e CONFIG_SYSVIPC
           ../scripts/config -e CONFIG_POSIX_MQUEUE
           ../scripts/config -e CONFIG_IPC_NS
+          ../scripts/config -e CONFIG_NAMESPACES
           ../scripts/config -e CONFIG_USER_NS
           ../scripts/config -e CONFIG_DEVTMPFS
-          ../scripts/config -e CONFIG_NAMESPACES
-          ../scripts/config -e CONFIG_WLAN_DRV_BUILD_IN
           ../scripts/config -e CONFIG_MTK_COMBO_BT
           ../scripts/config -e CONFIG_KALLSYMS
           ../scripts/config -e CONFIG_KALLSYMS_ALL
