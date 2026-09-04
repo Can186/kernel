@@ -101,6 +101,8 @@ jobs:
           ../scripts/config -e CONFIG_POSIX_MQUEUE
           ../scripts/config -e CONFIG_IPC_NS
           ../scripts/config -e CONFIG_NAMESPACES
+          ../scripts/config -e CONFIG_USER_NS
+          ../scripts/config -e CONFIG_DEVTMPFS
           ../scripts/config -e CONFIG_MTK_COMBO_BT
           ../scripts/config -e CONFIG_WLAN_DRV_BUILD_IN
           ../scripts/config -e CONFIG_MTK_COMBO_BT
@@ -121,6 +123,7 @@ jobs:
           ../scripts/config -e CONFIG_HAVE_KPROBES
           ../scripts/config -e CONFIG_KPROBE_EVENTS
           ../scripts/config -e CONFIG_MODULES
+          grep -E "CONFIG_SYSVIPC|CONFIG_POSIX_MQUEUE|CONFIG_IPC_NS|CONFIG_NAMESPACES" .config
           cd ..
           yes "" | make ARCH=arm64 olddefconfig O=out
           yes "" | make -j$(nproc) ARCH=arm64 SUBARCH=arm64 CC=clang LD=ld.lld O=out CONFIG_WLAN_DRV_BUILD_IN=y
