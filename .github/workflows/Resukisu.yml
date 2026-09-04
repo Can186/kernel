@@ -95,7 +95,8 @@ jobs:
           cd out
           ../scripts/config --disable CONFIG_CC_STACKPROTECTOR_STRONG
           ../scripts/config --disable LTO_CLANG
-          ../scripts/config -e CONFIG_IPC
+          ../scripts/config -e CONFIG_SYSVIPC
+          ../scripts/config -e CONFIG_POSIX_MQUEUE
           ../scripts/config -e CONFIG_IPC_NS
           ../scripts/config -e CONFIG_NAMESPACES
           ../scripts/config -e CONFIG_WLAN_DRV_BUILD_IN
@@ -114,6 +115,7 @@ jobs:
           ../scripts/config -e CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
           ../scripts/config -e CONFIG_KSU_SUSFS_OPEN_REDIRECT
           ../scripts/config -e CONFIG_KSU_SUSFS_SUS_MAP
+          grep -E "CONFIG_SYSVIPC|CONFIG_POSIX_MQUEUE|CONFIG_IPC_NS|CONFIG_NAMESPACES" out/.config
           cd ..
           yes "" | make ARCH=arm64 olddefconfig O=out
           yes "" | make -j$(nproc) ARCH=arm64 SUBARCH=arm64 CC=clang LD=ld.lld O=out CONFIG_WLAN_DRV_BUILD_IN=y
