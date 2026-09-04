@@ -98,6 +98,8 @@ jobs:
           ../scripts/config -e CONFIG_SYSVIPC
           ../scripts/config -e CONFIG_POSIX_MQUEUE
           ../scripts/config -e CONFIG_IPC_NS
+          ../scripts/config -e CONFIG_USER_NS
+          ../scripts/config -e CONFIG_DEVTMPFS
           ../scripts/config -e CONFIG_NAMESPACES
           ../scripts/config -e CONFIG_WLAN_DRV_BUILD_IN
           ../scripts/config -e CONFIG_MTK_COMBO_BT
