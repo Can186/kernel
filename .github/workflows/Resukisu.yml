@@ -48,7 +48,8 @@ jobs:
           git clone --depth=1 --branch cezanne-r-oss https://github.com/MiCode/MTK_kernel_modules.git vendor/mediatek/kernel_modules
           sed -i 's|TOP := $(srctree)/\.\.|TOP := $(srctree)/|' vendor/mediatek/kernel_modules/connectivity/wlan/core/gen4m/Makefile
           sed -i 's|TOP := $(srctree)/\.\.|TOP := $(srctree)/|' vendor/mediatek/kernel_modules/connectivity/wlan/adaptor/Makefile
-
+          sed -i 's|TOP := $(srctree)/\.\.|TOP := $(srctree)/|' vendor/mediatek/kernel_modules/connectivity/bt/mt66xx/legacy/Makefile
+          sed -i 's/obj-m/obj-y/g' vendor/mediatek/kernel_modules/connectivity/bt/mt66xx/legacy/Makefile
       - name: 修改 connectivity Makefile 并创建软链接
         run: |
           CONN_MK="drivers/misc/mediatek/connectivity/Makefile"
