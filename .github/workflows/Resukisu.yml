@@ -100,6 +100,16 @@ jobs:
           ../scripts/config -e CONFIG_KSU_SUSFS_SPOOF_CMDLINE_OR_BOOTCONFIG
           ../scripts/config -e CONFIG_KSU_SUSFS_OPEN_REDIRECT
           ../scripts/config -e CONFIG_KSU_SUSFS_SUS_MAP
+          ../scripts/config -e CONFIG_DRM
+          ../scripts/config -e CONFIG_DRM_PANFROST
+          ../scripts/config -e CONFIG_DRM_PANFROST_DEBUGFS
+          ../scripts/config -e CONFIG_DRM_DISPLAY_HELPER
+          ../scripts/config -e CONFIG_DRM_DP_AUX_CHARDEV
+          ../scripts/config -e CONFIG_DMA_BUF
+          ../scripts/config -e CONFIG_DMABUF_HEAPS
+          ../scripts/config -e CONFIG_SYNC_FILE
+          ../scripts/config -e CONFIG_ARM64_4K_PAGES
+          ../scripts/config -e CONFIG_BINFMT_MISC
           grep -E "CONFIG_SYSVIPC|CONFIG_POSIX_MQUEUE|CONFIG_IPC_NS|CONFIG_NAMESPACES" .config
           cd ..
           yes "" | make ARCH=arm64 olddefconfig O=out
